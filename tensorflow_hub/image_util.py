@@ -73,9 +73,7 @@ def get_expected_image_size(module_or_spec, signature=None, input_name=None):
   Raises:
     ValueError: If the size information is missing or malformed.
   """
-  # First see if an attached ImageModuleInfo provides this information.
-  image_module_info = get_image_module_info(module_or_spec)
-  if image_module_info:
+  if image_module_info := get_image_module_info(module_or_spec):
     size = image_module_info.default_image_size
     if size.height and size.width:
       return [size.height, size.width]
@@ -87,17 +85,17 @@ def get_expected_image_size(module_or_spec, signature=None, input_name=None):
   try:
     shape = input_info_dict[input_name].get_shape()
   except KeyError:
-    raise ValueError("Module is missing input '%s' in signature '%s'." %
-                     (input_name, signature or "default"))
+    raise ValueError(
+        f"""Module is missing input '{input_name}' in signature '{signature or "default"}'."""
+    )
   try:
     _, height, width, _ = shape.as_list()
     if not height or not width:
       raise ValueError
   except ValueError:
     raise ValueError(
-        "Shape of module input is %s, "
-        "expected [batch_size, height, width, num_channels] "
-        "with known height and width." % shape)
+        f"Shape of module input is {shape}, expected [batch_size, height, width, num_channels] with known height and width."
+    )
   return [height, width]
 
 
@@ -128,8 +126,9 @@ def get_num_image_channels(module_or_spec, signature=None, input_name=None):
   try:
     shape = input_info_dict[input_name].get_shape()
   except KeyError:
-    raise ValueError("Module is missing input '%s' in signature '%s'." %
-                     (input_name, signature or "default"))
+    raise ValueError(
+        f"""Module is missing input '{input_name}' in signature '{signature or "default"}'."""
+    )
   try:
     _, _, _, num_channels = shape.as_list()
     if num_channels is None:

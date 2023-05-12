@@ -70,7 +70,7 @@ def _get_asset_filename(export_dir, asset_filename):
   if not tf_utils.absolute_path(filename).startswith(
       tf_utils.absolute_path(assets_dir)):
     raise ValueError(
-        "Asset filename (%s) points outside assets_dir" % asset_filename)
+        f"Asset filename ({asset_filename}) points outside assets_dir")
   logging.debug("Asset filename: %s", filename)
   return filename
 
@@ -83,12 +83,12 @@ def _get_saved_model_proto_path(export_dir):
 
 def _get_node_name_from_tensor(tensor_name):
   """tensor_name must have format node_name:output_number. Returns node_name."""
-  result = re.match(r"([^:]*):\d+$", tensor_name)
-  if not result:
+  if result := re.match(r"([^:]*):\d+$", tensor_name):
+    return result[1]
+  else:
     raise ValueError(
         "Unexpected format for tensor name. Expected node_name:output_number. "
         "Got %r" % tensor_name)
-  return result.group(1)
 
 
 def add_signature(key, inputs, outputs):
@@ -234,8 +234,7 @@ def _merge_assets_key_collection(saved_model_proto, path):
       del meta_graph.collection_def[tf.compat.v1.saved_model.ASSETS_KEY]
 
     for node in meta_graph.graph_def.node:
-      asset_filepath = node_asset_map.get(node.name)
-      if asset_filepath:
+      if asset_filepath := node_asset_map.get(node.name):
         _check_asset_node_def(node)
         node.attr["value"].tensor.string_val[0] = asset_filepath
 
@@ -292,17 +291,17 @@ def _make_assets_key_collection(saved_model_proto, export_path):
       if not tensor.endswith(":0"):
         raise ValueError("Unexpected tensor in ASSET_FILEPATHS collection.")
 
-    asset_nodes = set([
+    asset_nodes = {
         _get_node_name_from_tensor(tensor)
         for tensor in collection_def.node_list.value
-    ])
+    }
 
     tensor_filename_map = {}
     for node in meta_graph.graph_def.node:
       if node.name in asset_nodes:
         _check_asset_node_def(node)
         filename = node.attr["value"].tensor.string_val[0]
-        tensor_filename_map[node.name + ":0"] = filename
+        tensor_filename_map[f"{node.name}:0"] = filename
         logging.debug("Found asset node %s pointing to %s", node.name, filename)
         # Clear value to avoid leaking the original path.
         node.attr["value"].tensor.string_val[0] = (
@@ -454,7 +453,7 @@ def _parse_saved_model(path):
   try:
     saved_model.ParseFromString(file_content)
   except message.DecodeError as e:
-    raise IOError("Cannot parse file %s: %s." % (path_to_pb, str(e)))
+    raise IOError(f"Cannot parse file {path_to_pb}: {str(e)}.")
   return saved_model
 
 

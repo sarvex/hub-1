@@ -52,10 +52,10 @@ def main(argv):
   try:
     _, export_path, = argv
   except ValueError:
-    raise ValueError("Usage: %s <export-path>" % argv[0])
+    raise ValueError(f"Usage: {argv[0]} <export-path>")
 
   if tf.gfile.Exists(export_path):
-    raise RuntimeError("Path %s already exists." % export_path)
+    raise RuntimeError(f"Path {export_path} already exists.")
 
   export_module(export_path)
 

@@ -144,7 +144,7 @@ class SavedModelLibTest(tf.test.TestCase):
         os.path.join(tmp_asset_dir, "file%d.txt" % n) for n in range(10)
     ]
     for filename in filenames:
-      _write_string_to_file(filename, "I am file %s" % filename)
+      _write_string_to_file(filename, f"I am file {filename}")
 
     with tf.Graph().as_default() as graph:
       assets = [tf.constant(f, name=os.path.basename(f)) for f in filenames]
@@ -179,7 +179,7 @@ class SavedModelLibTest(tf.test.TestCase):
     handler.add_graph_copy(graph)
 
     signatures = handler.get_meta_graph_copy().signature_def
-    self.assertEqual(set(signatures.keys()), set(["six", "mul2"]))
+    self.assertEqual(set(signatures.keys()), {"six", "mul2"})
     self.assertAllEqual(list(signatures["six"].inputs.keys()), [])
     self.assertAllEqual(list(signatures["six"].outputs.keys()), ["out"])
     self.assertAllEqual(list(signatures["mul2"].inputs.keys()), ["in"])
@@ -203,7 +203,7 @@ class SavedModelLibTest(tf.test.TestCase):
     handler.add_graph_copy(graph, ["tag1"])
     handler.add_graph_copy(graph, ["tag1", "tag2"])
     self.assertAllEqual(sorted(handler.get_tags()),
-                        sorted([set(["tag1"]), set(["tag1", "tag2"])]))
+                        sorted([{"tag1"}, {"tag1", "tag2"}]))
     self.assertIsNotNone(handler.get_meta_graph_copy(["tag1"]))
     self.assertIsNotNone(handler.get_meta_graph_copy(["tag2", "tag1"]))
     with self.assertRaises(KeyError):

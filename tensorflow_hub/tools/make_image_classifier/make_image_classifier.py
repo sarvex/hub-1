@@ -210,10 +210,7 @@ def _assert_accuracy(train_result, assert_accuracy_at_least):
 
 
 def _set_gpu_memory_growth():
-  # Original code reference found here:
-  # https://www.tensorflow.org/guide/gpu#limiting_gpu_memory_growth
-  gpus = tf.config.experimental.list_physical_devices("GPU")
-  if gpus:
+  if gpus := tf.config.experimental.list_physical_devices("GPU"):
     # Currently, memory growth needs to be the same across GPUs
     for gpu in gpus:
       tf.config.experimental.set_memory_growth(gpu, True)

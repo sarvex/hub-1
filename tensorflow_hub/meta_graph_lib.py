@@ -25,17 +25,15 @@ import tensorflow as tf
 
 def prepend_name_scope(name, import_scope):
   """Prepends name scope to a name."""
-  # Based on tensorflow/python/framework/ops.py implementation.
-  if import_scope:
-    try:
-      str_to_replace = r"([\^]|loc:@|^)(.*)"
-      return re.sub(str_to_replace, r"\1" + import_scope + r"/\2",
-                    tf.compat.as_str_any(name))
-    except TypeError as e:
-      # If the name is not of a type we can process, simply return it.
-      logging.warning(e)
-      return name
-  else:
+  if not import_scope:
+    return name
+  try:
+    str_to_replace = r"([\^]|loc:@|^)(.*)"
+    return re.sub(str_to_replace, r"\1" + import_scope + r"/\2",
+                  tf.compat.as_str_any(name))
+  except TypeError as e:
+    # If the name is not of a type we can process, simply return it.
+    logging.warning(e)
     return name
 
 
@@ -44,11 +42,11 @@ def prefix_shared_name_attributes(meta_graph, absolute_import_scope):
   shared_name_attr = "shared_name"
   for node in meta_graph.graph_def.node:
     shared_name_value = node.attr.get(shared_name_attr, None)
-    if shared_name_value and shared_name_value.HasField("s"):
-      if shared_name_value.s:
-        node.attr[shared_name_attr].s = tf.compat.as_bytes(
-            prepend_name_scope(
-                shared_name_value.s, import_scope=absolute_import_scope))
+    if (shared_name_value and shared_name_value.HasField("s")
+        and shared_name_value.s):
+      node.attr[shared_name_attr].s = tf.compat.as_bytes(
+          prepend_name_scope(
+              shared_name_value.s, import_scope=absolute_import_scope))
 
 
 def mark_backward(output_tensor):
@@ -104,15 +102,10 @@ def prune_unused_nodes(meta_graph, signature_def):
     for _, tensor_def in signature_def.outputs.items():
       output_tensor = graph.get_tensor_by_name(tensor_def.name)
       used_node_names |= mark_backward(output_tensor)
-    # Filter out all nodes in the meta_graph that are not used.
-    node_filter_in_list = []
-    for node in meta_graph.graph_def.node:
-      # Make a special exception for VarHandleOp. Removing VarhandleOps
-      # will make the graph not importable as they often leave nodes hanging.
-      # These will be disconnected through the feedmap when importing the
-      # metagraph.
-      if node.name in used_node_names or node.op == "VarHandleOp":
-        node_filter_in_list.append(node)
+    node_filter_in_list = [
+        node for node in meta_graph.graph_def.node
+        if node.name in used_node_names or node.op == "VarHandleOp"
+    ]
     del meta_graph.graph_def.node[:]
     meta_graph.graph_def.node.extend(node_filter_in_list)
   del graph
@@ -120,11 +113,8 @@ def prune_unused_nodes(meta_graph, signature_def):
 
 def prune_feed_map(meta_graph, feed_map):
   """Function to prune the feedmap of nodes which no longer exist."""
-  node_names = [x.name + ":0" for x in meta_graph.graph_def.node]
-  keys_to_delete = []
-  for k, _ in feed_map.items():
-    if k not in node_names:
-      keys_to_delete.append(k)
+  node_names = [f"{x.name}:0" for x in meta_graph.graph_def.node]
+  keys_to_delete = [k for k, _ in feed_map.items() if k not in node_names]
   for k in keys_to_delete:
     del feed_map[k]
 

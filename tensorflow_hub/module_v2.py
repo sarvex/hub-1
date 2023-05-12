@@ -88,7 +88,7 @@ def load(handle, tags=None, options=None):
                          version of TF.
   """
   if not isinstance(handle, str):
-    raise ValueError("Expected a string, got %s" % handle)
+    raise ValueError(f"Expected a string, got {handle}")
   module_path = resolve(handle)
   is_hub_module_v1 = tf.io.gfile.exists(
       native_module.get_module_proto_path(module_path))

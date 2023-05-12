@@ -134,7 +134,7 @@ def main(args):
   """Entry point main function."""
 
   operation = validate_args(args)
-  print("Selected operation: {}".format(operation))
+  print(f"Selected operation: {operation}")
 
   if operation == "generate":
     print("Generating embeddings...")

@@ -93,8 +93,9 @@ def generate_random_projection_weights(original_dim, projected_dim, output_dir):
   if projected_dim and original_dim > projected_dim:
     random_projection_matrix = gaussian_random_matrix(
         n_components=projected_dim, n_features=original_dim).T
-    print('A Gaussian random weight matrix was creates with shape of {}'.format(
-        random_projection_matrix.shape))
+    print(
+        f'A Gaussian random weight matrix was creates with shape of {random_projection_matrix.shape}'
+    )
     print('Storing random projection matrix to disk...')
     output_file_path = os.path.join(output_dir, _RANDOM_PROJECTION_FILENAME)
     with open(output_file_path, 'wb') as handle:
@@ -123,18 +124,17 @@ def run(args):
 
   print('Starting the Beam pipeline...')
   with beam.Pipeline(runner=_RUNNER, options=options) as pipeline:
-    _ = (
-        pipeline
-        | 'Read sentences from files' >>
-        beam.io.ReadFromText(file_pattern=args.data_file_pattern)
-        | 'Batch elements' >> util.BatchElements(
-            min_batch_size=_BATCH_SIZE / 2, max_batch_size=_BATCH_SIZE)
-        | 'Generate embeddings' >> beam.Map(
-            generate_embeddings, args.module_url, random_projection_matrix)
-        | 'Encode to tf example' >> beam.FlatMap(to_tf_example)
-        | 'Write to TFRecords files' >> beam.io.WriteToTFRecord(
-            file_path_prefix='{}/emb'.format(args.embed_output_dir),
-            file_name_suffix='.tfrecords')
-    )
+    _ = (pipeline
+         | 'Read sentences from files' >>
+         beam.io.ReadFromText(file_pattern=args.data_file_pattern)
+         | 'Batch elements' >> util.BatchElements(
+             min_batch_size=_BATCH_SIZE / 2, max_batch_size=_BATCH_SIZE)
+         | 'Generate embeddings' >> beam.Map(
+             generate_embeddings, args.module_url, random_projection_matrix)
+         | 'Encode to tf example' >> beam.FlatMap(to_tf_example)
+         | ('Write to TFRecords files' >> beam.io.WriteToTFRecord(
+             file_path_prefix=f'{args.embed_output_dir}/emb',
+             file_name_suffix='.tfrecords',
+         )))
 
   print('Beam pipeline completed.')

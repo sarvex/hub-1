@@ -159,8 +159,8 @@ class KerasLayer(tf.keras.layers.Layer):
       if not self._signature_outputs_as_dict:
         self._output_key = self._output_key or "default"
     # More validity checks.
-    if self._signature and (bool(self._output_key is not None)
-                            == bool(self._signature_outputs_as_dict)):
+    if self._signature and (self._output_key is not None) == bool(
+        self._signature_outputs_as_dict):
       raise ValueError("When using a signature, either output_key or "
                        "signature_outputs_as_dict=True should be set.")
     if not self._signature and self._signature_outputs_as_dict:
@@ -213,9 +213,8 @@ class KerasLayer(tf.keras.layers.Layer):
     # a mutable public attribute.
     self._check_trainability()
 
-    # We basically want to call this...
-    args = []
     kwargs = self._arguments.copy()
+    args = []
     if self._signature and isinstance(inputs, dict):
       kwargs.update(inputs)
     else:
@@ -242,12 +241,13 @@ class KerasLayer(tf.keras.layers.Layer):
     # Unwrap dicts returned by signatures.
     if self._output_key:
       if not isinstance(result, dict):
-        raise ValueError("Specifying `output_key` is forbidden if output "
-                         "type %s is not a dict." % type(result))
+        raise ValueError(
+            f"Specifying `output_key` is forbidden if output type {type(result)} is not a dict."
+        )
       if self._output_key not in result:
         raise ValueError(
-            "KerasLayer output does not contain the output key %s "
-            "(available: %s)." % (self._output_key, result.keys()))
+            f"KerasLayer output does not contain the output key {self._output_key} (available: {result.keys()})."
+        )
       result = result[self._output_key]
 
     result = self._apply_output_shape_if_set(inputs, result)
@@ -280,32 +280,34 @@ class KerasLayer(tf.keras.layers.Layer):
     # Having zero trainable variables in an otherwise trainable model
     # is suspicious but may be valid as a boundary case, so we just log,
     # but at most once per layer instance.
-    if not self.trainable_weights:
-      if not hasattr(self, "_already_logged_trainable_with_zero_weights"):
-        logging.error(
-            "hub.KerasLayer is trainable but has zero trainable weights.")
-        setattr(self, "_already_logged_trainable_with_zero_weights", True)
+    if not self.trainable_weights and not hasattr(
+        self, "_already_logged_trainable_with_zero_weights"):
+      logging.error(
+          "hub.KerasLayer is trainable but has zero trainable weights.")
+      setattr(self, "_already_logged_trainable_with_zero_weights", True)
 
   def _get_callable(self):
     """Returns a callable object."""
     if callable(self._func) and not self._signature:
       return self._func
     if not hasattr(self._func, "signatures"):
-      if self._signature:  # Assuming the user intended to use a signature.
+      if self._signature:
         raise ValueError("Loaded object has no signatures.")
-      else:  # Assuming the user intended to use a callable SavedModel.
+      else:
         raise ValueError(
             "Loaded object is not callable and has no signatures.")
     if self._signature is None:
       raise ValueError("Signature name has to be specified for non-callable "
                        "saved models (if not legacy TF1 Hub format).")
     if self._signature not in self._func.signatures:
-      raise ValueError("Unknown signature %s in %s (available signatures: %s)."
-                       % (self._signature, self._handle, self._func.signatures))
+      raise ValueError(
+          f"Unknown signature {self._signature} in {self._handle} (available signatures: {self._func.signatures})."
+      )
     f = self._func.signatures[self._signature]
     if not callable(f):
-      raise ValueError("Internal error: signature %s is not callable in %s" %
-                       (self._signature, self._handle))
+      raise ValueError(
+          f"Internal error: signature {self._signature} is not callable in {self._handle}"
+      )
     return f
 
   def _apply_output_shape_if_set(self, inputs, outputs):
@@ -328,9 +330,8 @@ class KerasLayer(tf.keras.layers.Layer):
       # to not using config, instead of crashing.
       # TODO(b/134528831): Reconsider the usability implications.
       raise NotImplementedError(
-          "Can only generate a valid config for `hub.KerasLayer(handle, ...)`"
-          "that uses a string `handle`.\n\n"
-          "Got `type(handle)`: {}".format(type(self._handle)))
+          f"Can only generate a valid config for `hub.KerasLayer(handle, ...)`that uses a string `handle`.\n\nGot `type(handle)`: {type(self._handle)}"
+      )
     config["handle"] = self._handle
 
     if hasattr(self, "_output_shape"):
@@ -339,8 +340,8 @@ class KerasLayer(tf.keras.layers.Layer):
         json.dumps(output_shape)
       except TypeError:
         raise ValueError(
-            "hub.KerasLayer(..., output_shape=) is not json-serializable.\n"
-            "Got value: {}".format(output_shape))
+            f"hub.KerasLayer(..., output_shape=) is not json-serializable.\nGot value: {output_shape}"
+        )
       config["output_shape"] = output_shape
 
     if self._arguments:
@@ -350,8 +351,8 @@ class KerasLayer(tf.keras.layers.Layer):
           json.dumps(value)
         except TypeError:
           raise ValueError(
-              "`hub.KerasLayer(..., arguments)` contains non json-serializable"
-              "values in key: {}".format(key))
+              f"`hub.KerasLayer(..., arguments)` contains non json-serializablevalues in key: {key}"
+          )
       config["arguments"] = self._arguments
 
     if self._signature:

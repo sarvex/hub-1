@@ -158,8 +158,8 @@ class LatestModuleExporter(tf.compat.v1.estimator.Exporter):
     session = _make_estimator_serving_session(estimator, self._serving_input_fn,
                                               checkpoint_path)
     with session:
-      export_modules = tf.compat.v1.get_collection(_EXPORT_MODULES_COLLECTION)
-      if export_modules:
+      if export_modules := tf.compat.v1.get_collection(
+          _EXPORT_MODULES_COLLECTION):
         for export_name, module in export_modules:
           module_export_path = os.path.join(temp_export_dir,
                                             tf.compat.as_bytes(export_name))

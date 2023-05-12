@@ -77,8 +77,8 @@ class FakeResolver(resolver.Resolver):
 
   def __call__(self, handle):
     if handle.endswith("error"):
-      raise ValueError("error for: " + handle)
-    return handle + "-resolved_by_" + self.prefix
+      raise ValueError(f"error for: {handle}")
+    return f"{handle}-resolved_by_{self.prefix}"
 
 
 class CompressedResolverTest(tf.test.TestCase):

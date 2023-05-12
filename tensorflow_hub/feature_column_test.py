@@ -39,8 +39,8 @@ def text_module_fn():
   tbl_init = KeyValueTensorInitializer(keys, indices)
   table = HashTable(tbl_init, 0)
 
-  weights_initializer = tf.cast(
-      tf.constant(list([item[1] for item in embeddings])), tf.float32)
+  weights_initializer = tf.cast(tf.constant([item[1] for item in embeddings]),
+                                tf.float32)
 
   weights = tf.compat.v1.get_variable(
       "weights", dtype=tf.float32, initializer=weights_initializer)

@@ -161,16 +161,16 @@ class GetStateScopeTest(tf.test.TestCase):
 class _ModuleSpec(module_spec.ModuleSpec):
 
   def get_tags(self):
-    return [set(), set(["special"])]
+    return [set(), {"special"}]
 
   def get_signature_names(self, tags=None):
-    if tags == set(["special"]):
+    if tags == {"special"}:
       return iter(["default", "extra", "sparse", "ragged"])
     else:
       return iter(["default"])
 
   def get_input_info_dict(self, signature=None, tags=None):
-    if signature == "ragged" and tags == set(["special"]):
+    if signature == "ragged" and tags == {"special"}:
       result = {
           "x":
               tensor_info.ParsedTensorInfo.from_type_spec(
@@ -181,13 +181,13 @@ class _ModuleSpec(module_spec.ModuleSpec):
     else:
       result = {
           "x":
-              tensor_info.ParsedTensorInfo(
-                  tf.float32,
-                  tf.TensorShape([None]),
-                  is_sparse=(signature == "sparse" and
-                             tags == set(["special"]))),
+          tensor_info.ParsedTensorInfo(
+              tf.float32,
+              tf.TensorShape([None]),
+              is_sparse=signature == "sparse" and tags == {"special"},
+          )
       }
-    if tags == set(["special"]) and signature == "extra":
+    if tags == {"special"} and signature == "extra":
       result["y"] = result["x"]
     return result
 
@@ -198,7 +198,7 @@ class _ModuleSpec(module_spec.ModuleSpec):
             tf.TensorShape([None]),
             is_sparse=False),
     }
-    if tags == set(["special"]) and signature == "extra":
+    if tags == {"special"} and signature == "extra":
       result["z"] = result["default"]
     return result
 

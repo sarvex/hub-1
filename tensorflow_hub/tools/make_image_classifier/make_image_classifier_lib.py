@@ -42,8 +42,7 @@ def get_distribution_strategy(distribution_strategy_name):
   elif not distribution_strategy_name:
     return NoStrategy()
   else:
-    raise ValueError(
-        "Unknown distribution strategy {}".format(distribution_strategy_name))
+    raise ValueError(f"Unknown distribution strategy {distribution_strategy_name}")
 
 
 class HParams(
@@ -274,10 +273,9 @@ def _image_size_for_module(module_layer, requested_image_size=None):
     if requested_image_size.is_compatible_with(module_image_size):
       return tuple(requested_image_size.as_list())
     else:
-      raise ValueError("The selected TF Hub module expects image size {}, "
-                       "but size {} is requested".format(
-                           module_image_size,
-                           tuple(requested_image_size.as_list())))
+      raise ValueError(
+          f"The selected TF Hub module expects image size {module_image_size}, but size {tuple(requested_image_size.as_list())} is requested"
+      )
 
 
 def build_model(module_layer, hparams, image_size, num_classes):
@@ -397,7 +395,7 @@ def make_image_classifier(tfhub_module,
     module_layer = hub.KerasLayer(
         tfhub_module, trainable=hparams.do_fine_tuning)
     image_size = _image_size_for_module(module_layer, requested_image_size)
-    print("Using module {} with image size {}".format(tfhub_module, image_size))
+    print(f"Using module {tfhub_module} with image size {image_size}")
     if use_tf_data_input:
       train_data_and_size, valid_data_and_size, labels = _get_data_as_datasets(
           image_dir, image_size, hparams)

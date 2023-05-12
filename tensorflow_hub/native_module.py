@@ -85,30 +85,18 @@ _MODULE_PROTO_FILENAME_PB = "tfhub_module.pb"
 
 _MODULE_V3_SUPPORTED_FEATURES = frozenset([])  # None yet.
 
-_SUPPORTED_COLLECTIONS = set([
-    # GLOBAL_VARIABLES, TRAINABLE_VARIABLES and MODEL_VARIABLES hold
-    # tf.Variable objects saved in CollectionDef.bytes_list as serialized
-    # VariableDef proto.
+_SUPPORTED_COLLECTIONS = {
     tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
     tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
     tf.compat.v1.GraphKeys.MODEL_VARIABLES,
-    # This holds tf.Operation objects, saved in CollectionDef.node_list.
     tf.compat.v1.GraphKeys.TABLE_INITIALIZERS,
-    # This holds tf.Tensor objects, saved in CollectionDef.node_list.
     tf.compat.v1.GraphKeys.UPDATE_OPS,
-    # This holds tf.Tensor objects, saved in CollectionDef.node_list.
-    # These are imported to help fine-tuning (unlike LOSSES, which the
-    # importing model redefines from scratch).
     tf.compat.v1.GraphKeys.REGULARIZATION_LOSSES,
-    # This holds constant tensors of type string.
     tf.compat.v1.GraphKeys.ASSET_FILEPATHS,
-    # This holds serialized CondContextDef protos in CollectionDef.bytes_list.
     tf.compat.v1.GraphKeys.COND_CONTEXT,
-    # This holds serialized WhileContextDef protos in CollectionDef.bytes_list.
     tf.compat.v1.GraphKeys.WHILE_CONTEXT,
-    # saved_model_lib uses this collection internally for ModuleAttachments.
     saved_model_lib.ATTACHMENT_COLLECTION_SAVED,
-])
+}
 
 
 def get_module_proto_path(module_dir):
@@ -143,9 +131,8 @@ class Loader(object):
                        module_def_proto.format)
 
     required_features = set(module_def_proto.required_features)
-    unsupported_features = (required_features - _MODULE_V3_SUPPORTED_FEATURES)
-
-    if unsupported_features:
+    if unsupported_features := (required_features -
+                                _MODULE_V3_SUPPORTED_FEATURES):
       raise ValueError("Unsupported features: %r" % list(unsupported_features))
 
     return self._module_def_proto_to_module_spec(path)
@@ -269,12 +256,12 @@ def add_signature(name=None, inputs=None, outputs=None):
     inputs = {"default": inputs}
   if not isinstance(outputs, dict):
     outputs = {"default": outputs}
-  message = find_signature_inputs_from_multivalued_ops(inputs)
-  if message: logging.error(message)
-  message = find_signature_input_colocation_error(name, inputs)
-  if message: raise ValueError(message)
-  message = find_signature_type_errors(name, inputs, outputs)
-  if message: raise ValueError(message)
+  if message := find_signature_inputs_from_multivalued_ops(inputs):
+    logging.error(message)
+  if message := find_signature_input_colocation_error(name, inputs):
+    raise ValueError(message)
+  if message := find_signature_type_errors(name, inputs, outputs):
+    raise ValueError(message)
   saved_model_lib.add_signature(name, inputs, outputs)
 
 
@@ -323,8 +310,7 @@ def attach_message(key, message):
     ValueError: if `key` is not a string of the form of a Python identifier.
   """
   if not re.match(r"[a-zA-Z][a-zA-Z0-9_]*$", key):
-    raise ValueError(
-        "hub.attach_message() called with malformed key '%s'" % key)
+    raise ValueError(f"hub.attach_message() called with malformed key '{key}'")
   saved_model_lib.attach_bytes(key, message.SerializeToString())
 
 
@@ -515,7 +501,7 @@ class _ModuleImpl(module_impl.ModuleImpl):
     # instantiated variables.
     variables_tensor_map = {}
     for var in tf.compat.v1.global_variables():
-      if var.op.name.startswith(absolute_scope_name + "/"):
+      if var.op.name.startswith(f"{absolute_scope_name}/"):
         variables_tensor_map[var.name[len(absolute_scope_name)+1:]] = var
 
     # Build a map of tensors to feed from the state-graph into subsequent
@@ -676,7 +662,7 @@ def get_state_map(meta_graph, state_ops, unsupported_state_ops,
   state_map = {}
   for node in meta_graph.graph_def.node:
     if node.op in state_ops:
-      tensor_name = node.name + ":0"
+      tensor_name = f"{node.name}:0"
       tensor = get_tensor_by_name(tensor_name)
       num_outputs = len(tensor.op.outputs)
       if num_outputs != 1:
@@ -684,24 +670,19 @@ def get_state_map(meta_graph, state_ops, unsupported_state_ops,
                          (node.op, num_outputs))
       state_map[tensor_name] = tensor
     if node.op in unsupported_state_ops:
-      raise ValueError("Unsupported stateful op: %s" % node.op)
+      raise ValueError(f"Unsupported stateful op: {node.op}")
   return state_map
 
 
 def replace_apply_state(meta_graph, state_ops, feed_map):
   """Replaces state ops with non state Placeholder ops for the apply graph."""
   for node in meta_graph.graph_def.node:
-    keys_to_purge = []
-    tensor_name = node.name + ":0"
+    tensor_name = f"{node.name}:0"
     # Verify that the node is a state op and that its due to be rewired
     # in the feedmap.
     if node.op in state_ops and tensor_name in feed_map:
       node.op = "Placeholder"
-      for key in node.attr:
-        # Only shape and dtype are required for Placeholder. Remove other
-        # attributes.
-        if key != "shape":
-          keys_to_purge.append(key)
+      keys_to_purge = [key for key in node.attr if key != "shape"]
       for key in keys_to_purge:
         del node.attr[key]
       node.attr["dtype"].type = types_pb2.DT_RESOURCE
@@ -724,12 +705,12 @@ def get_node_map_from_tensor_map(tensor_map):
 
 def _split_tensor_name(tensor_name):
   """Given a tensor name as node_name:output_number, returns both parts."""
-  result = re.match(r"(.*):(\d+)$", tensor_name)
-  if not result:
+  if result := re.match(r"(.*):(\d+)$", tensor_name):
+    return result[1], int(result[2])
+  else:
     raise ValueError(
         "Unexpected format for tensor name. Expected node_name:output_number. "
         "Got %r" % tensor_name)
-  return result.group(1), int(result.group(2))
 
 
 def _extract_variable_parts(variable_key, variable):
@@ -806,8 +787,8 @@ def recover_partitioned_variable_map(var_node_map):
       variables_map[var_name] = var_value
       continue
     shapes = [var_tensor.shape[1:] for var_tensor in var_value.values()]
-    if not all(shape == shapes[0] for shape in shapes):
-      raise RuntimeError("Shapes not compatible: %s" % (shapes))
+    if any(shape != shapes[0] for shape in shapes):
+      raise RuntimeError(f"Shapes not compatible: {shapes}")
     for _, tensor in sorted(var_value.items()):
       variables_map[var_name] = [
           tensor for _, tensor in sorted(var_value.items())
@@ -830,8 +811,7 @@ def check_collections_are_supported(saved_model_handler, supported):
   """Checks that SavedModelHandler only uses supported collections."""
   for meta_graph in saved_model_handler.meta_graphs:
     used_collection_keys = set(meta_graph.collection_def.keys())
-    unsupported = used_collection_keys - supported
-    if unsupported:
+    if unsupported := used_collection_keys - supported:
       raise ValueError("Unsupported collections in graph: %s\n"
                        "Use hub.create_module_spec(..., drop_collections=[...])"
                        " as appropriate." % list(unsupported))
@@ -858,12 +838,15 @@ def register_ops_if_needed(graph_ops):
   # This allows the test to exercise all the calls into TensorFlow
   # without having to write a C + python test.
   op_def_registry.sync()
-  missing_ops = {op for op in graph_ops if op_def_registry.get(op) is None}
-  if missing_ops:
+  if missing_ops := {
+      op
+      for op in graph_ops if op_def_registry.get(op) is None
+  }:
     raise tf.errors.NotFoundError(
-        None, None,
-        "Graph ops missing from the python registry (%s) are also absent from "
-        "the c++ registry." % missing_ops)
+        None,
+        None,
+        f"Graph ops missing from the python registry ({missing_ops}) are also absent from the c++ registry.",
+    )
 
 
 def fix_colocation_after_import(input_map, absolute_import_scope):
@@ -952,17 +935,18 @@ class _ConsistentValue(object):
     if self.value is None:
       self.value = value
       self._context["old_value"] = value
-      self._context.update({"old_" + k: v for k, v in context.items()})
+      self._context.update({f"old_{k}": v for k, v in context.items()})
     elif self.value != value:
       self.has_error = True
       self._context["new_value"] = value
-      self._context.update({"new_" + k: v for k, v in context.items()})
+      self._context.update({f"new_{k}": v for k, v in context.items()})
 
   def GetConsistentValueOrRaise(self, error_format, context=None):
     """Gets consistent value or raises ValueError with formatted contexts."""
     if self.has_error:
       full_context = dict(self._context)
-      if context: full_context.update(context)
+      if context:
+        full_context |= context
       raise ValueError(error_format.format(**full_context))
     return self.value
 
@@ -984,13 +968,16 @@ def _build_colocation_attr_map(input_map, absolute_import_scope):
   used_outputs_of_imported_ops = collections.defaultdict(set)
   # Collect mappings from the input_map.
   for imported_tensor_name, mapped_tensor in input_map.items():
-    imported_tensor_name = absolute_import_scope + "/" + imported_tensor_name
+    imported_tensor_name = f"{absolute_import_scope}/{imported_tensor_name}"
     imported_op_name, imported_index = _split_tensor_name(imported_tensor_name)
-    key = tf.compat.as_bytes("loc:@" + imported_op_name)
+    key = tf.compat.as_bytes(f"loc:@{imported_op_name}")
     colocation_attr_map[key].Set(
         mapped_tensor.op.colocation_groups(),
-        {"reason": "input '%s' is substituted by '%s'" % (
-            imported_tensor_name, mapped_tensor.name)})
+        {
+            "reason":
+            f"input '{imported_tensor_name}' is substituted by '{mapped_tensor.name}'"
+        },
+    )
     used_outputs_of_imported_ops[imported_op_name].add(imported_index)
   # Add unchanged mappings for additional, non-remapped outputs of ops touched
   # by the input_map. For now, these just signal inconsistency when used.
@@ -999,7 +986,7 @@ def _build_colocation_attr_map(input_map, absolute_import_scope):
         imported_op_name)
     unused_outputs = set(range(len(imported_op.outputs))) - used_outputs
     if not unused_outputs: continue
-    key = tf.compat.as_bytes("loc:@" + imported_op_name)
+    key = tf.compat.as_bytes(f"loc:@{imported_op_name}")
     if imported_op.colocation_groups() != [key]:
       # This should never happen: state nodes are remapped fully, input nodes
       # are prevented from having colocation attributes.
@@ -1010,9 +997,11 @@ def _build_colocation_attr_map(input_map, absolute_import_scope):
           (imported_op_name, imported_op.colocation_groups()))
     colocation_attr_map[key].Set(
         [key],
-        {"reason": "tensor '%s:%s' is not substituted by inputs" % (
-            imported_op_name,
-            ",".join(str(i) for i in sorted(unused_outputs)))})
+        {
+            "reason":
+            f"""tensor '{imported_op_name}:{",".join(str(i) for i in sorted(unused_outputs))}' is not substituted by inputs"""
+        },
+    )
 
   return colocation_attr_map
 
@@ -1039,7 +1028,7 @@ def _apply_colocation_attr_map(colocation_attr_map, absolute_import_scope):
     # NOTE: The colocation_group loc:@X of a node with itself is not stored
     # explicitly as an attr, so rewrite errors for loc:@X are not triggered
     # by the mere existence of X.
-    if not op.name.startswith(absolute_import_scope + "/"): continue
+    if not op.name.startswith(f"{absolute_import_scope}/"): continue
     try:
       class_values = op.get_attr("_class")
     except ValueError:
@@ -1100,7 +1089,7 @@ def find_state_op_colocation_error(graph, reported_tags=None):
       if not (colocation_group.startswith(tf.compat.as_bytes("loc:@")) and
               tf.compat.as_str_any(colocation_group[5:]) in state_op_map):
         tags_prefix = ("" if reported_tags is None else
-                       "in the graph for tags %s, " % reported_tags)
+                       f"in the graph for tags {reported_tags}, ")
         return (
             "A state-holding node x of a module's graph (e.g., a Variable op) "
             "must not be subject to a tf.colocate_with(y) constraint "
@@ -1116,7 +1105,7 @@ def find_signature_input_colocation_error(signature_name, inputs):
   for input_name, tensor in inputs.items():
     ops = [t.op for t in tf.nest.flatten(tensor, expand_composites=True)]
     for op in ops:
-      expected_colocation_groups = [tf.compat.as_bytes("loc:@" + op.name)]
+      expected_colocation_groups = [tf.compat.as_bytes(f"loc:@{op.name}")]
       if op.colocation_groups() != expected_colocation_groups:
         return (
             "A tensor x used as input in a signature must not be subject to a "
@@ -1133,7 +1122,7 @@ def find_signature_inputs_from_multivalued_ops(inputs):
   dense_inputs = []  # List of (str, Tensor), with CompositeTensors decomposed.
   for name, tensor in sorted(inputs.items()):
     if isinstance(tensor, tf.SparseTensor):
-      dense_inputs.extend(("%s.%s" % (name, attr), getattr(tensor, attr))
+      dense_inputs.extend((f"{name}.{attr}", getattr(tensor, attr))
                           for attr in ("indices", "values", "dense_shape"))
     elif tf_utils.is_composite_tensor(tensor):
       components = tf.nest.flatten(tensor, expand_composites=True)
@@ -1141,9 +1130,8 @@ def find_signature_inputs_from_multivalued_ops(inputs):
                           for (i, c) in enumerate(components))
     else:
       dense_inputs.append((name, tensor))
-  warnings = [(name, tensor.name) for name, tensor in dense_inputs
-              if len(tensor.op.outputs) != 1]
-  if warnings:
+  if warnings := [(name, tensor.name) for name, tensor in dense_inputs
+                  if len(tensor.op.outputs) != 1]:
     return (
         "WARNING: The inputs declared in hub.add_signature() should be tensors "
         "from ops with a single output, or else uses of tf.colocate_with() on "
@@ -1155,17 +1143,15 @@ def find_signature_inputs_from_multivalued_ops(inputs):
 
 def find_signature_type_errors(signature_name, inputs, outputs):
   """Return error message for inputs or outputs with incorrect types."""
-  errors = ([("input", name, tensor)
-             for name, tensor in sorted(inputs.items())
-             if not isinstance(tensor, tf_utils.SUPPORTED_ARGUMENT_TYPES)] +
-            [("output", name, tensor)
-             for name, tensor in sorted(outputs.items())
-             if not isinstance(tensor, tf_utils.SUPPORTED_ARGUMENT_TYPES)])
-  if errors:
+  if errors := (
+      [("input", name, tensor) for name, tensor in sorted(inputs.items())
+       if not isinstance(tensor, tf_utils.SUPPORTED_ARGUMENT_TYPES)] +
+      [("output", name, tensor) for name, tensor in sorted(outputs.items())
+       if not isinstance(tensor, tf_utils.SUPPORTED_ARGUMENT_TYPES)]):
     ok_types = ", ".join(t.__name__ for t in tf_utils.SUPPORTED_ARGUMENT_TYPES)
-    bad_types = "\n".join("  * %s '%s' has type %s" %
-                          (source, name, type(value).__name__)
-                          for (source, name, value) in errors)
+    bad_types = "\n".join(
+        f"  * {source} '{name}' has type {type(value).__name__}"
+        for (source, name, value) in errors)
     return (
         "The inputs and outputs declared in hub.add_signature() for signature "
         "'%s' should have one of the types that are supported by this version "

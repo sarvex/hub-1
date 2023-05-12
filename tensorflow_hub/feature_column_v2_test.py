@@ -40,8 +40,7 @@ class TextEmbedding(tf.train.Checkpoint):
     indices = tf.constant(list(range(len(embeddings))), dtype=tf.int64)
     tbl_init = KeyValueTensorInitializer(keys, indices)
     self.table = HashTable(tbl_init, 0)
-    self.weights = tf.Variable(
-        list([item[1] for item in embeddings]), dtype=tf.float32)
+    self.weights = tf.Variable([item[1] for item in embeddings], dtype=tf.float32)
     self.variables = [self.weights]
     self.trainable_variables = self.variables
     self._returns_dict = returns_dict

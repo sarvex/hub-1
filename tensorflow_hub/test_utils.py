@@ -153,7 +153,7 @@ def get_test_data_path(file_or_dirname):
     for f in subdirs + files:
       if f.endswith(file_or_dirname):
         return os.path.join(directory, f)
-  raise ValueError("No %s in test directory" % file_or_dirname)
+  raise ValueError(f"No {file_or_dirname} in test directory")
 
 
 def export_module(module_export_path):

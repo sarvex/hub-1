@@ -65,10 +65,10 @@ def run(args):
 
   embed_files = tf.io.gfile.glob(os.path.join(embed_output_dir, '*.tfrecords'))
   num_files = len(embed_files)
-  print('Found {} embedding file(s).'.format(num_files))
+  print(f'Found {num_files} embedding file(s).')
 
   dimensions = _infer_dimensions(embed_files[0])
-  print('Embedding size: {}'.format(dimensions))
+  print(f'Embedding size: {dimensions}')
 
   annoy_index = annoy.AnnoyIndex(dimensions, metric=_METRIC)
 
@@ -77,8 +77,7 @@ def run(args):
 
   item_counter = 0
   for i, embed_file in enumerate(embed_files):
-    print('Loading embeddings in file {} of {}...'.format(
-        i + 1, num_files))
+    print(f'Loading embeddings in file {i + 1} of {num_files}...')
     dataset = tf.data.TFRecordDataset(embed_file)
     for record in dataset.map(_parse_example):
       item = record['item'].numpy().decode('utf-8')
@@ -87,25 +86,27 @@ def run(args):
       annoy_index.add_item(item_counter, embedding)
       item_counter += 1
       if item_counter % 200000 == 0:
-        print('{} items loaded to the index'.format(item_counter))
+        print(f'{item_counter} items loaded to the index')
 
-  print('A total of {} items added to the index'.format(item_counter))
+  print(f'A total of {item_counter} items added to the index')
 
-  print('Building the index with {} trees...'.format(num_trees))
+  print(f'Building the index with {num_trees} trees...')
   annoy_index.build(n_trees=num_trees)
   print('Index is successfully built.')
 
   print('Saving index to disk...')
   annoy_index.save(index_file_path)
-  print('Index is saved to disk. File size: {} GB'.format(
-      round(os.path.getsize(index_file_path) / float(1024**3), 2)))
+  print(
+      f'Index is saved to disk. File size: {round(os.path.getsize(index_file_path) / float(1024**3), 2)} GB'
+  )
   annoy_index.unload()
 
   print('Saving mapping to disk...')
   with open(mapping_file_path, 'wb') as handle:
     pickle.dump(mapping, handle, protocol=pickle.HIGHEST_PROTOCOL)
-  print('Mapping is saved to disk. File size: {} MB'.format(
-      round(os.path.getsize(mapping_file_path) / float(1024**2), 2)))
+  print(
+      f'Mapping is saved to disk. File size: {round(os.path.getsize(mapping_file_path) / float(1024**2), 2)} MB'
+  )
 
   random_projection_file_path = os.path.join(
       args.embed_output_dir, _RANDOM_PROJECTION_FILENAME)

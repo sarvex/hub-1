@@ -75,8 +75,8 @@ class End2EndTest(tf.test.TestCase):
       # Test caching using custom filesystem (file://) to make sure that the
       # TF Hub library can operate on such paths.
       try:
-        root_dir = "file://%s" % self.get_temp_dir()
-        cache_dir = "%s_%s" % (root_dir, "cache")
+        root_dir = f"file://{self.get_temp_dir()}"
+        cache_dir = f"{root_dir}_cache"
         tf.compat.v1.gfile.MakeDirs(cache_dir)
         os.environ["TFHUB_CACHE_DIR"] = cache_dir
         m = hub.Module("http://localhost:%d/test_module.tgz" % self.server_port)
@@ -97,8 +97,8 @@ class End2EndTest(tf.test.TestCase):
         os.unsetenv("TFHUB_CACHE_DIR")
 
   def test_module_export_vocab_on_custom_fs(self):
-    root_dir = "file://%s" % self.get_temp_dir()
-    export_dir = "%s_%s" % (root_dir, "export")
+    root_dir = f"file://{self.get_temp_dir()}"
+    export_dir = f"{root_dir}_export"
     tf.compat.v1.gfile.MakeDirs(export_dir)
     # Create a module with a vocab file located on a custom filesystem.
     vocab_dir = os.path.join(root_dir, "vocab_location")

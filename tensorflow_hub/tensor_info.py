@@ -91,10 +91,9 @@ class ParsedTensorInfo(object):
 
   def __repr__(self):
     if isinstance(self._type_spec, (tf.TensorSpec, tf.SparseTensorSpec)):
-      return "<hub.ParsedTensorInfo shape=%s dtype=%s is_sparse=%s>" % (
-          self.get_shape(), self.dtype.name, self.is_sparse)
+      return f"<hub.ParsedTensorInfo shape={self.get_shape()} dtype={self.dtype.name} is_sparse={self.is_sparse}>"
     else:
-      return "<hub.ParsedTensorInfo type_spec=%s>" % self.type_spec
+      return f"<hub.ParsedTensorInfo type_spec={self.type_spec}>"
 
 
 def _parse_tensor_info_proto(tensor_info):
@@ -165,7 +164,7 @@ def _convert_to_compatible_tensor(value, target, error_prefix):
       tensor = tf.compat.v1.convert_to_tensor_or_indexed_slices(
           value, target.dtype)
     except TypeError as e:
-      raise TypeError("%s: %s" % (error_prefix, e))
+      raise TypeError(f"{error_prefix}: {e}")
   tensor_type_spec = _get_type_spec(tensor)
   target_type_spec = _get_type_spec(target)
   if not ParsedTensorInfo.from_type_spec(tensor_type_spec).is_supported_type:
@@ -181,7 +180,7 @@ def _convert_to_compatible_tensor(value, target, error_prefix):
     else:
       got = str(tensor_type_spec)
       expected = str(target_type_spec)
-    raise TypeError("%s: Got %s. Expected %s." % (error_prefix, got, expected))
+    raise TypeError(f"{error_prefix}: Got {got}. Expected {expected}.")
   return tensor
 
 
@@ -199,11 +198,12 @@ def convert_dict_to_compatible_tensor(values, targets):
   Raises:
     TypeError: If it fails to convert.
   """
-  result = {}
-  for key, value in sorted(values.items()):
-    result[key] = _convert_to_compatible_tensor(
-        value, targets[key], error_prefix="Can't convert %r" % key)
-  return result
+  return {
+      key: _convert_to_compatible_tensor(value,
+                                         targets[key],
+                                         error_prefix="Can't convert %r" % key)
+      for key, value in sorted(values.items())
+  }
 
 
 def build_input_map(protomap, inputs):
@@ -239,7 +239,7 @@ def build_input_map(protomap, inputs):
       for (info, tensor) in zip(component_infos, component_tensors):
         input_map[info.name] = tensor
     else:
-      raise ValueError("Invalid TensorInfo.encoding: %s" % encoding)
+      raise ValueError(f"Invalid TensorInfo.encoding: {encoding}")
   return input_map
 
 
@@ -276,7 +276,7 @@ def build_output_map(protomap, get_tensor_by_name):
       ]
       return tf_utils.composite_tensor_from_components(type_spec, components)
     else:
-      raise ValueError("Invalid TensorInfo.encoding: %s" % encoding)
+      raise ValueError(f"Invalid TensorInfo.encoding: {encoding}")
 
   return {
       key: get_output_from_tensor_info(tensor_info)

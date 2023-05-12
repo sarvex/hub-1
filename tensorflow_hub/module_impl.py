@@ -47,9 +47,7 @@ class ModuleImpl(object):
 
   def get_signature_name(self, signature):
     """Resolves a signature name."""
-    if not signature:
-      return "default"
-    return signature
+    return "default" if not signature else signature
 
   @abc.abstractmethod
   def export(self, path, session):

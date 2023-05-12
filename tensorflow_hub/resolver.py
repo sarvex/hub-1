@@ -147,7 +147,7 @@ class DownloadManager(object):
       # Print progress message to console overwriting previous progress
       # message.
       self._max_prog_str = max(self._max_prog_str, len(msg))
-      sys.stdout.write("\r%-{}s".format(self._max_prog_str) % msg)
+      sys.stdout.write(f"\r%-{self._max_prog_str}s" % msg)
       sys.stdout.flush()
       if flush:
         print("\n")
@@ -194,10 +194,9 @@ class DownloadManager(object):
       total_size_str = tf_utils.bytes_to_readable_str(
           self._total_bytes_downloaded, True)
       self._print_download_progress_msg(
-          "Downloaded %s, Total size: %s" % (self._url, total_size_str),
-          flush=True)
+          f"Downloaded {self._url}, Total size: {total_size_str}", flush=True)
     except tarfile.ReadError:
-      raise IOError("%s does not appear to be a valid module." % self._url)
+      raise IOError(f"{self._url} does not appear to be a valid module.")
 
 
 def _merge_relative_path(dst_path, rel_path):
@@ -207,7 +206,7 @@ def _merge_relative_path(dst_path, rel_path):
 
 def _module_descriptor_file(module_dir):
   """Returns the name of the file containing descriptor for the 'module_dir'."""
-  return "{}.descriptor.txt".format(module_dir)
+  return f"{module_dir}.descriptor.txt"
 
 
 def _write_module_descriptor_file(handle, module_dir):
@@ -219,9 +218,12 @@ def _write_module_descriptor_file(handle, module_dir):
   """
   readme = _module_descriptor_file(module_dir)
   readme_content = (
-      "Module: %s\nDownload Time: %s\nDownloader Hostname: %s (PID:%d)" %
-      (handle, str(datetime.datetime.today()), socket.gethostname(),
-       os.getpid()))
+      "Module: %s\nDownload Time: %s\nDownloader Hostname: %s (PID:%d)" % (
+          handle,
+          str(datetime.datetime.now()),
+          socket.gethostname(),
+          os.getpid(),
+      ))
   # The descriptor file has no semantic meaning so we allow 'overwrite' since
   # there is a chance that another process might have written the file (and
   # crashed), we just overwrite it.
@@ -235,7 +237,7 @@ def _lock_file_contents(task_uid):
 
 def _lock_filename(module_dir):
   """Returns lock file name."""
-  return tf_utils.absolute_path(module_dir) + ".lock"
+  return f"{tf_utils.absolute_path(module_dir)}.lock"
 
 
 def _module_dir(lock_filename):
@@ -248,9 +250,8 @@ def _module_dir(lock_filename):
     ValueError: if lock_filename is ill specified.
   """
   if not lock_filename.endswith(".lock"):
-    raise ValueError(
-        "Lock file name (%s) has to end with .lock." % lock_filename)
-  return lock_filename[0:-len(".lock")]
+    raise ValueError(f"Lock file name ({lock_filename}) has to end with .lock.")
+  return lock_filename[:-len(".lock")]
 
 
 def _task_uid_from_lock_file(lock_filename):
@@ -261,7 +262,7 @@ def _task_uid_from_lock_file(lock_filename):
 
 def _temp_download_dir(module_dir, task_uid):
   """Returns the name of a temporary directory to download module to."""
-  return "{}.{}.tmp".format(tf_utils.absolute_path(module_dir), task_uid)
+  return f"{tf_utils.absolute_path(module_dir)}.{task_uid}.tmp"
 
 
 def _dir_size(directory):
@@ -496,7 +497,7 @@ class PathResolver(Resolver):
 
   def __call__(self, handle):
     if not tf.compat.v1.gfile.Exists(handle):
-      raise IOError("%s does not exist." % handle)
+      raise IOError(f"{handle} does not exist.")
     return handle
 
 

@@ -109,8 +109,8 @@ def _check_module_is_text_embedding(module_spec):
   else:
     input_info, = input_info_dict.values()
     input_shape = input_info.get_shape()
-    if not (input_info.dtype == tf.string and input_shape.ndims == 1 and
-            input_shape.as_list() == [None]):
+    if (input_info.dtype != tf.string or input_shape.ndims != 1
+        or input_shape.as_list() != [None]):
       issues.append("Module default signature must have only one input "
                     "tf.Tensor(shape=(?,), dtype=string)")
 
@@ -121,8 +121,8 @@ def _check_module_is_text_embedding(module_spec):
   else:
     output_info = output_info_dict["default"]
     output_shape = output_info.get_shape()
-    if not (output_info.dtype == tf.float32 and output_shape.ndims == 2 and
-            not output_shape.as_list()[0] and output_shape.as_list()[1]):
+    if (output_info.dtype != tf.float32 or output_shape.ndims != 2
+        or output_shape.as_list()[0] or not output_shape.as_list()[1]):
       issues.append("Module default signature must have a 'default' output of "
                     "tf.Tensor(shape=(?,K), dtype=float32).")
 
@@ -155,7 +155,7 @@ class _TextEmbeddingColumn(
     """Returns string. Used for variable_scope and naming."""
     if not hasattr(self, "_name"):
       key_name = self.key if isinstance(self.key, str) else self.key.name
-      self._name = "{}_hub_module_embedding".format(key_name)
+      self._name = f"{key_name}_hub_module_embedding"
     return self._name
 
   def create_state(self, state_manager):
@@ -215,11 +215,9 @@ class _TextEmbeddingColumn(
   def get_config(self):
     if not isinstance(self.module_spec_path, str):
       raise NotImplementedError(
-          "Can only generate a valid config for `hub.text_embedding_column`"
-          "that uses a string `module_spec`.\n\n"
-          "Got `type(module_spec)`: {}".format(type(self.module_spec_path)))
-    config = dict(zip(self._fields, self))
-    return config
+          f"Can only generate a valid config for `hub.text_embedding_column`that uses a string `module_spec`.\n\nGot `type(module_spec)`: {type(self.module_spec_path)}"
+      )
+    return dict(zip(self._fields, self))
 
   @classmethod
   def from_config(cls, config, custom_objects=None, columns_by_name=None):
@@ -353,7 +351,7 @@ class _ImageEmbeddingColumn(DenseFeatureColumn,
     """Returns string. Used for variable_scope and naming."""
     if not hasattr(self, "_name"):
       key_name = self.key if isinstance(self.key, str) else self.key.name
-      self._name = "{}_hub_module_embedding".format(key_name)
+      self._name = f"{key_name}_hub_module_embedding"
     return self._name
 
   def create_state(self, state_manager):
@@ -411,11 +409,9 @@ class _ImageEmbeddingColumn(DenseFeatureColumn,
   def get_config(self):
     if not isinstance(self.module_spec_path, str):
       raise NotImplementedError(
-          "Can only generate a valid config for `hub.image_embedding_column`"
-          "that uses a string `module_spec`.\n\n"
-          "Got `type(module_spec)`: {}".format(type(self.module_spec_path)))
-    config = dict(zip(self._fields, self))
-    return config
+          f"Can only generate a valid config for `hub.image_embedding_column`that uses a string `module_spec`.\n\nGot `type(module_spec)`: {type(self.module_spec_path)}"
+      )
+    return dict(zip(self._fields, self))
 
   @classmethod
   def from_config(cls, config, custom_objects=None, columns_by_name=None):
@@ -513,7 +509,7 @@ class _SparseTextEmbeddingColumn(
     """Returns string. Used for variable_scope and naming."""
     if not hasattr(self, "_name"):
       key_name = self.key if isinstance(self.key, str) else self.key.name
-      self._name = "{}_hub_module_embedding".format(key_name)
+      self._name = f"{key_name}_hub_module_embedding"
     return self._name
 
   def _transform_feature(self, inputs):

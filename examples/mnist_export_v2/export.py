@@ -104,9 +104,7 @@ def train_and_export(export_path,
     for step, data in enumerate(dataset):
       train_step(model, loss_fn, optimizer_fn, metric, data["image"],
                  data["label"])
-      print("\rEpoch: #{}\tStep: #{}\tLoss: {}\n".format(
-          epoch, step,
-          metric.result().numpy()))
+      print(f"\rEpoch: #{epoch}\tStep: #{step}\tLoss: {metric.result().numpy()}\n")
 
   # We have to call either predict or fit to make it possible to export with
   # tf.saved_model.save.

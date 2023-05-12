@@ -77,7 +77,7 @@ def compute_distance_matrix(x_train, x_test, measure="squared_l2"):
     x_xt = np.ones(np.shape(x_xt)) - np.divide(x_xt, outer)
 
   else:
-    raise NotImplementedError("Method '{}' is not implemented".format(measure))
+    raise NotImplementedError(f"Method '{measure}' is not implemented")
 
   return x_xt
 
@@ -99,9 +99,8 @@ def compute_distance_matrix_loo(x, measure="squared_l2"):
 
   if tf.test.is_gpu_available():
     x = tf.convert_to_tensor(x, tf.float64)
-  else:
-    if x.dtype != np.float32:
-      x = np.float32(x)
+  elif x.dtype != np.float32:
+    x = np.float32(x)
 
   if measure == "squared_l2":
     if tf.test.is_gpu_available():
@@ -128,7 +127,7 @@ def compute_distance_matrix_loo(x, measure="squared_l2"):
     np.fill_diagonal(d, float("inf"))
 
   else:
-    raise NotImplementedError("Method '{}' is not implemented".format(measure))
+    raise NotImplementedError(f"Method '{measure}' is not implemented")
 
   return d
 
@@ -155,27 +154,25 @@ def knn_errorrate(d, y_train, y_test, k=1):
   num_elements = np.shape(d)[0]
 
   val_k = k[0]
+  cnt = 0
   if val_k == 1:
     if len(k) > 1:
         raise ValueError("No smaller value than '1' allowed for k")
 
     indices = np.argmin(d, axis=1)
 
-    cnt = 0
     for idx, val in enumerate(indices):
 
       if len(np.shape(y_train)) == 1:
         if y_test[idx] != y_train[val]:
           cnt += 1
-      else:
-        if y_test[idx] != y_train[idx, val]:
-          cnt += 1
+      elif y_test[idx] != y_train[idx, val]:
+        cnt += 1
 
     res = float(cnt) / num_elements
 
   else:
     indices = np.argpartition(d, val_k - 1, axis=1)
-    cnt = 0
     for i in range(num_elements):
 
       # Get max vote

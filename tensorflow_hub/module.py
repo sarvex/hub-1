@@ -166,11 +166,7 @@ class Module(object):
     self._name = abs_state_scope.split("/")[-2]
 
     abs_parent_scope = abs_state_scope.split("/")[:-2]
-    if abs_parent_scope:
-      abs_parent_scope = "/".join(abs_parent_scope) + "/"
-    else:
-      abs_parent_scope = ""
-
+    abs_parent_scope = "/".join(abs_parent_scope) + "/" if abs_parent_scope else ""
     with tf.name_scope(abs_parent_scope):
       # pylint: disable=protected-access
       self._impl = self._spec._create_impl(
@@ -255,7 +251,7 @@ class Module(object):
     # but that is an invalid character for a name that is used as part
     # of variable scopes.
     safe_signature = signature.replace(":", "_")
-    name = "%s_apply_%s" % (self._name, safe_signature)
+    name = f"{self._name}_apply_{safe_signature}"
 
     input_tensor_infos = self._spec.get_input_info_dict(signature, self._tags)
     output_tensor_infos = self._spec.get_output_info_dict(signature, self._tags)
@@ -392,11 +388,11 @@ def _try_get_state_scope(name, mark_name_scope_used=True):
   with tf.name_scope(tmp_scope_name):
     # Pick an unused variable scope.
     with tf.compat.v1.variable_scope(
-        None, default_name=name, auxiliary_name_scope=False) as vs:
-      abs_state_scope = vs.name + "/"
+            None, default_name=name, auxiliary_name_scope=False) as vs:
+      abs_state_scope = f"{vs.name}/"
     # Verify that the name scope is available and mark it used if requested.
     graph = tf.compat.v1.get_default_graph()
-    unique_name_scope = graph.unique_name(name, mark_name_scope_used) + "/"
+    unique_name_scope = f"{graph.unique_name(name, mark_name_scope_used)}/"
     if unique_name_scope != abs_state_scope:
       raise RuntimeError(
           "variable_scope %s was unused but the corresponding "
@@ -520,9 +516,7 @@ def _spec_to_placeholder(type_spec, name):
   if len(flat_specs) == 1:
     flat_names = [name]
   else:
-    flat_names = [
-        "{}.component_{}".format(name, i) for i in range(len(flat_specs))
-    ]
+    flat_names = [f"{name}.component_{i}" for i in range(len(flat_specs))]
   placeholders = [
       tf.compat.v1.placeholder(s.dtype, s.shape, name)
       for (s, name) in zip(flat_specs, flat_names)

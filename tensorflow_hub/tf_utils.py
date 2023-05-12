@@ -230,10 +230,7 @@ def is_composite_tensor(x):
 def get_composite_tensor_type_spec(x):
   """Returns the TypeSpec for `x`, or `None` if it's not a composite tensor."""
   type_spec = getattr(x, "__tf_type_spec__", None)
-  if type_spec is None:
-    return getattr(x, "_type_spec", None)
-  else:
-    return type_spec()
+  return getattr(x, "_type_spec", None) if type_spec is None else type_spec()
 
 
 def composite_tensor_info_to_type_spec(tensor_info):

@@ -82,6 +82,6 @@ if __name__ == "__main__":
   try:
     _ensure_tf2()
   except ImportError as e:
-    print("Skipping tests:", str(e))
+    print("Skipping tests:", e)
     sys.exit(0)
   tf.test.main()

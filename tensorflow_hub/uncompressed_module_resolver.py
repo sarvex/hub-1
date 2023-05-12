@@ -42,8 +42,8 @@ class HttpUncompressedFileResolver(resolver.HttpResolverBase):
     gcs_location = self._call_urlopen(request)
     if not gcs_location.startswith("gs://"):
       raise ValueError(
-          "Expected server to return a GCS location but received {}".format(
-              gcs_location))
+          f"Expected server to return a GCS location but received {gcs_location}"
+      )
     return gcs_location
 
   def _call_urlopen(self, request):

@@ -100,8 +100,7 @@ class NativeModuleTest(tf.test.TestCase):
         batch_norm_module,
         [({"training"}, {"training": True}),
          ({"inference"}, {"training": False})])
-    self.assertAllEqual(sorted(spec.get_tags()),
-                        [set(["training"]), set(["inference"])])
+    self.assertAllEqual(sorted(spec.get_tags()), [{"training"}, {"inference"}])
 
   def testModuleWithVariablesAndNoCheckpoint(self):
     with tf.Graph().as_default():
@@ -175,16 +174,20 @@ class RecoverPartitionedVariableMapTest(tf.test.TestCase):
 
       all_vars = tf.compat.v1.global_variables()
       all_vars_dict = {var.op.name[5:]: var for var in all_vars}
-      self.assertEqual(set(all_vars_dict.keys()), set([
-          "partitioned_variable/part_0",
-          "partitioned_variable/part_1",
-          "partitioned_variable/part_2",
-          "normal_variable"]))
+      self.assertEqual(
+          set(all_vars_dict.keys()),
+          {
+              "partitioned_variable/part_0",
+              "partitioned_variable/part_1",
+              "partitioned_variable/part_2",
+              "normal_variable",
+          },
+      )
 
       self.assertEqual(len(all_vars_dict), 4)
       var_map = native_module.recover_partitioned_variable_map(all_vars_dict)
-      self.assertEqual(set(var_map.keys()), set([
-          "partitioned_variable", "normal_variable"]))
+      self.assertEqual(set(var_map.keys()),
+                       {"partitioned_variable", "normal_variable"})
 
       # Verify order of the partitioned variable list
       self.assertAllEqual(
@@ -667,7 +670,8 @@ class TFHubStatefulModuleTest(tf.test.TestCase):
       # In any case, the point is to *not* colocate with the stillborn copy
       # of the VarHandleOp in the apply graph scope.
       if out.op.colocation_groups() != [
-          tf.compat.as_bytes("loc:@" + out.op.name)]:
+          tf.compat.as_bytes(f"loc:@{out.op.name}")
+      ]:
         self.assertItemsEqual(out.op.colocation_groups(),
                               [tf.compat.as_bytes("loc:@module/rv_var123")])
 
@@ -693,7 +697,7 @@ class TFHubStatefulModuleTest(tf.test.TestCase):
             sess, variables_path, write_meta_graph=False, write_state=False)
         variable_names_and_shapes = tf.compat.v1.train.list_variables(
             ckpt_dir_or_file=variables_path)
-        variable_names = set(name for name, _ in variable_names_and_shapes)
+        variable_names = {name for name, _ in variable_names_and_shapes}
         self.assertEqual(variable_names, {"module/rv_var123"})
 
   def testNonResourceVariables(self):
@@ -735,7 +739,7 @@ class TFHubStatefulModuleTest(tf.test.TestCase):
               sess, variables_path, write_meta_graph=False, write_state=False)
           variable_names_and_shapes = tf.compat.v1.train.list_variables(
               ckpt_dir_or_file=variables_path)
-          variable_names = set(name for name, _ in variable_names_and_shapes)
+          variable_names = {name for name, _ in variable_names_and_shapes}
           self.assertEqual(variable_names, {"module/var123"})
 
   @test_util.run_v1_only("b/138681007")
@@ -1651,7 +1655,7 @@ class TFHubModuleWithMultipleSignatures(tf.test.TestCase):
 def cond_module_fn():
   """Computes relu(x) with a conditional."""
   x = tf.compat.v1.placeholder(dtype=tf.float32, name="x", shape=[])
-  result = tf.cond(0 < x, lambda: tf.identity(x), lambda: tf.constant(0.0))
+  result = tf.cond(x > 0, lambda: tf.identity(x), lambda: tf.constant(0.0))
   hub.add_signature(inputs=x, outputs=result)
 
 
@@ -1660,13 +1664,12 @@ def nested_cond_module_fn():
   x = tf.compat.v1.placeholder(dtype=tf.float32, name="x", shape=[])
   # pylint: disable=g-long-lambda
   result = tf.cond(
-      0 < x,
-      lambda: tf.cond(3 < x,
-                      lambda: tf.identity(x),
-                      lambda: tf.multiply(x, 1.0)),
-      lambda: tf.cond(x < -3,
-                      lambda: tf.constant(0.0),
-                      lambda: tf.multiply(0.0, 1.0)))
+      x > 0,
+      lambda: tf.cond(x > 3, lambda: tf.identity(x), lambda: tf.multiply(
+          x, 1.0)),
+      lambda: tf.cond(x < -3, lambda: tf.constant(0.0), lambda: tf.multiply(
+          0.0, 1.0)),
+  )
   # pylint: enable=g-long-lambda
   hub.add_signature(inputs=x, outputs=result)
 
@@ -1914,9 +1917,11 @@ class TFHubExportSpecTest(tf.test.TestCase):
 
     spec = hub.create_module_spec(lambda: self.module_fn(dim=20))
     with self.assertRaisesRegexp(ValueError, "doesn't match with shape of"):
-      spec.export(export_path,
-                  checkpoint_path=checkpoint_path,
-                  name_transform_fn=lambda x: "block/" + x)
+      spec.export(
+          export_path,
+          checkpoint_path=checkpoint_path,
+          name_transform_fn=lambda x: f"block/{x}",
+      )
 
   def testExportModuleSpec_withWrongScope(self):
     checkpoint_path = self.createCheckpoint("block2")
@@ -1924,9 +1929,11 @@ class TFHubExportSpecTest(tf.test.TestCase):
 
     spec = hub.create_module_spec(self.module_fn)
     with self.assertRaisesRegexp(ValueError, "bias is not found in"):
-      spec.export(export_path,
-                  checkpoint_path=checkpoint_path,
-                  name_transform_fn=lambda x: "block/" + x)
+      spec.export(
+          export_path,
+          checkpoint_path=checkpoint_path,
+          name_transform_fn=lambda x: f"block/{x}",
+      )
 
 
 class TFHubUsageWithEager(tf.test.TestCase):

@@ -54,8 +54,7 @@ def extract_tarfile_to_destination(fileobj, dst_path, log_function=None):
         tf.compat.v1.gfile.MakeDirs(abs_target_path)
       else:
         # We do not support symlinks and other uncommon objects.
-        raise ValueError("Unexpected object type in tar archive: %s" %
-                         tarinfo.type)
+        raise ValueError(f"Unexpected object type in tar archive: {tarinfo.type}")
 
 
 def merge_relative_path(dst_path, rel_path):

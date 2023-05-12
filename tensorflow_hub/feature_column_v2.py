@@ -101,14 +101,14 @@ class _TextEmbeddingColumnV2(
 
   @property
   def _resource_name(self):
-    return "hub_text_column_%s" % self.key
+    return f"hub_text_column_{self.key}"
 
   @property
   def name(self):
     """Returns string. Used for variable_scope and naming."""
     if not hasattr(self, "_name"):
       key_name = self.key if isinstance(self.key, str) else self.key.name
-      self._name = "{}_hub_module_embedding".format(key_name)
+      self._name = f"{key_name}_hub_module_embedding"
     return self._name
 
   def create_state(self, state_manager):
@@ -144,8 +144,7 @@ class _TextEmbeddingColumnV2(
     return layer(text_batch)
 
   def get_config(self):
-    config = dict(zip(self._fields, self))
-    return config
+    return dict(zip(self._fields, self))
 
   @classmethod
   def from_config(cls, config, custom_objects=None, columns_by_name=None):

@@ -45,7 +45,7 @@ class TensorInfoTest(tf.test.TestCase):
       })
 
       inputs = tensor_info.parse_tensor_info_map(sig.inputs)
-      self.assertEqual(set(inputs.keys()), set(["x"]))
+      self.assertEqual(set(inputs.keys()), {"x"})
       self.assertEqual(inputs["x"].get_shape(), [2])
       self.assertEqual(inputs["x"].dtype, tf.string)
       self.assertFalse(inputs["x"].is_sparse)
@@ -54,7 +54,7 @@ class TensorInfoTest(tf.test.TestCase):
       self.assertTrue(inputs["x"].is_supported_type)
 
       outputs = tensor_info.parse_tensor_info_map(sig.outputs)
-      self.assertEqual(set(outputs.keys()), set(["y", "z", "r"]))
+      self.assertEqual(set(outputs.keys()), {"y", "z", "r"})
       self.assertEqual(outputs["y"].get_shape(), [2])
       self.assertEqual(outputs["y"].dtype, tf.int32)
       self.assertFalse(outputs["y"].is_sparse)

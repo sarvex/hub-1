@@ -47,7 +47,7 @@ def load_raw_features(data_spec):
 
 def load_labels(data_spec):
   data = load_data(data_spec=data_spec)
-  return np.array([x for x in data.map(lambda x: x["label"])])
+  return np.array(list(data.map(lambda x: x["label"])))
 
 
 def compute_embeddings(module_spec, data_spec):
@@ -98,12 +98,11 @@ def main(argv):
     "num_examples": train_examples,
   }
 
-  results = []
-  for module in module_list:
-    results.append((
-        module, data_spec,
-        compute_score(module_spec=module, data_spec=data_spec)))
-
+  results = [(
+      module,
+      data_spec,
+      compute_score(module_spec=module, data_spec=data_spec),
+  ) for module in module_list]
   df = pd.DataFrame(results, columns=["module", "data", "1nn"])
   df = df.filter(["module", "1nn"])
   df.sort_values(["1nn"])
@@ -111,13 +110,13 @@ def main(argv):
   df.set_index("module")
 
   with pd.option_context(
-      "display.max_rows", None,
-      "display.max_columns", None,
-      "display.precision", 3,
-      "max_colwidth", -1,  # Don't truncate columns (e.g. module name).
-      "display.expand_frame_repr", False,  # Don't wrap output.
-  ):
-    print("# Module ranking for %s" % data_spec)
+        "display.max_rows", None,
+        "display.max_columns", None,
+        "display.precision", 3,
+        "max_colwidth", -1,  # Don't truncate columns (e.g. module name).
+        "display.expand_frame_repr", False,  # Don't wrap output.
+    ):
+    print(f"# Module ranking for {data_spec}")
     print(df)
 
 

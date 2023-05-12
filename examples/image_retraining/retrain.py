@@ -161,7 +161,7 @@ def create_image_lists(image_dir, testing_percentage, validation_percentage):
     The order of items defines the class indices.
   """
   if not tf.gfile.Exists(image_dir):
-    logging.error("Image directory '" + image_dir + "' not found.")
+    logging.error(f"Image directory '{image_dir}' not found.")
     return None
   result = collections.OrderedDict()
   sub_dirs = sorted(x[0] for x in tf.gfile.Walk(image_dir))
@@ -171,8 +171,10 @@ def create_image_lists(image_dir, testing_percentage, validation_percentage):
     if is_root_dir:
       is_root_dir = False
       continue
-    extensions = sorted(set(os.path.normcase(ext)  # Smash case on Windows.
-                            for ext in ['JPEG', 'JPG', 'jpeg', 'jpg', 'png']))
+    extensions = sorted({
+        os.path.normcase(ext)
+        for ext in ['JPEG', 'JPG', 'jpeg', 'jpg', 'png']
+    })
     file_list = []
     dir_name = os.path.basename(
         # tf.gfile.Walk() returns sub-directory with trailing '/' when it is in
@@ -183,7 +185,7 @@ def create_image_lists(image_dir, testing_percentage, validation_percentage):
       continue
     logging.info("Looking for images in '%s'",  dir_name)
     for extension in extensions:
-      file_glob = os.path.join(image_dir, dir_name, '*.' + extension)
+      file_glob = os.path.join(image_dir, dir_name, f'*.{extension}')
       file_list.extend(tf.gfile.Glob(file_glob))
     if not file_list:
       logging.warning('No files found')
@@ -262,8 +264,7 @@ def get_image_path(image_lists, label_name, index, image_dir, category):
   mod_index = index % len(category_list)
   base_name = category_list[mod_index]
   sub_dir = label_lists['dir']
-  full_path = os.path.join(image_dir, sub_dir, base_name)
-  return full_path
+  return os.path.join(image_dir, sub_dir, base_name)
 
 
 def get_bottleneck_path(image_lists, label_name, index, bottleneck_dir,
@@ -365,8 +366,7 @@ def create_bottleneck_file(bottleneck_path, image_lists, label_name, index,
         sess, image_data, jpeg_data_tensor, decoded_image_tensor,
         resized_input_tensor, bottleneck_tensor)
   except Exception as e:
-    raise RuntimeError('Error during processing file %s (%s)' % (image_path,
-                                                                 str(e)))
+    raise RuntimeError(f'Error during processing file {image_path} ({str(e)})')
   bottleneck_string = ','.join(str(x) for x in bottleneck_values)
   with tf.gfile.GFile(bottleneck_path, 'w') as bottleneck_file:
     bottleneck_file.write(bottleneck_string)
@@ -512,7 +512,7 @@ def get_random_cached_bottlenecks(sess, image_lists, how_many, category,
   filenames = []
   if how_many >= 0:
     # Retrieve a random sample of bottlenecks.
-    for unused_i in range(how_many):
+    for _ in range(how_many):
       label_index = random.randrange(class_count)
       label_name = list(image_lists.keys())[label_index]
       image_index = random.randrange(MAX_NUM_IMAGES_PER_CLASS + 1)
@@ -572,7 +572,7 @@ def get_random_distorted_bottlenecks(
   class_count = len(image_lists.keys())
   bottlenecks = []
   ground_truths = []
-  for unused_i in range(how_many):
+  for _ in range(how_many):
     label_index = random.randrange(class_count)
     label_name = list(image_lists.keys())[label_index]
     image_index = random.randrange(MAX_NUM_IMAGES_PER_CLASS + 1)
@@ -984,8 +984,9 @@ def logging_level_verbosity(logging_verbosity):
   try:
     return name_to_level[logging_verbosity]
   except Exception as e:
-    raise RuntimeError('Not supported logs verbosity (%s). Use one of %s.' %
-                       (str(e), list(name_to_level)))
+    raise RuntimeError(
+        f'Not supported logs verbosity ({str(e)}). Use one of {list(name_to_level)}.'
+    )
 
 
 def main(_):
@@ -1063,11 +1064,10 @@ def main(_):
 
     # Merge all the summaries and write them out to the summaries_dir
     merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
+    train_writer = tf.summary.FileWriter(f'{FLAGS.summaries_dir}/train',
                                          sess.graph)
 
-    validation_writer = tf.summary.FileWriter(
-        FLAGS.summaries_dir + '/validation')
+    validation_writer = tf.summary.FileWriter(f'{FLAGS.summaries_dir}/validation')
 
     # Create a train saver that is used to restore values into an eval graph
     # when exporting models.

@@ -38,15 +38,17 @@ class ExportTest(tf.test.TestCase):
     export.train_and_export(
         epoch=1,
         dataset=self.mock_dataset,
-        export_path="%s/model/1" % self.get_temp_dir())
+        export_path=f"{self.get_temp_dir()}/model/1",
+    )
     self.assertTrue(os.listdir(self.get_temp_dir()))
 
   def test_empty_input(self):
     export.train_and_export(
         epoch=1,
         dataset=self.mock_dataset,
-        export_path="%s/model/1" % self.get_temp_dir())
-    model = hub.load("%s/model/1" % self.get_temp_dir())
+        export_path=f"{self.get_temp_dir()}/model/1",
+    )
+    model = hub.load(f"{self.get_temp_dir()}/model/1")
     output_ = model(tf.zeros([1, 28, 28, 1], dtype=tf.uint8).numpy())
     self.assertEqual(output_.shape, [1, 10])
 

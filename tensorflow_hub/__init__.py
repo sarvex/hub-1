@@ -25,7 +25,7 @@ def _ensure_python_version():
   # Update this whenever we need to depend on a newer Python version.
   #
   required_python_version = (3, 5)
-  if sys.version_info[0:2] < required_python_version:
+  if sys.version_info[:2] < required_python_version:
     raise ImportError(
         "This version of tensorflow_hub requires Python {required} or newer; "
         "instead detected version {present}".format(

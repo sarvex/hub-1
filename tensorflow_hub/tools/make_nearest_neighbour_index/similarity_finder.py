@@ -74,8 +74,7 @@ class SimilarityFinder(object):
       query_embedding = query_embedding.dot(self.random_projection_matrix)
     ids = self.index.get_nns_by_vector(
         query_embedding, num_matches, search_k=-1, include_distances=False)
-    items = [self.mapping[i] for i in ids]
-    return items
+    return [self.mapping[i] for i in ids]
 
 
 def load(args):

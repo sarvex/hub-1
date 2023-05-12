@@ -193,7 +193,7 @@ def _get_batch_norm_vars(imported):
   names = [v.name for v in variables]
   assert len(variables) == 4
   assert all(
-      name.endswith(suffix + ":0")
+      name.endswith(f"{suffix}:0")
       for name, suffix in zip(names, expected_suffixes))
   return variables
 
@@ -252,10 +252,7 @@ def _save_model_with_dict_input_output(export_dir):
     x = d["x"]
     y = d["y"]
     sigma = tf.concat([tf.add(x, y), tf.add(x, 2 * y)], axis=-1)
-    if return_dict:
-      return dict(sigma=sigma, delta=tf.subtract(x, y))
-    else:
-      return sigma
+    return dict(sigma=sigma, delta=tf.subtract(x, y)) if return_dict else sigma
 
   # Trigger traces.
   d_spec = dict(
@@ -324,13 +321,11 @@ def _save_plus_one_saved_model_v2_keras_default_callable(path):
     return x + 1
 
   @tf.function(input_signature=[
-      tf.TensorSpec(None, dtype=tf.float32),
-      tf.TensorSpec((), dtype=tf.bool)
-  ])
+        tf.TensorSpec(None, dtype=tf.float32),
+        tf.TensorSpec((), dtype=tf.bool)
+    ])
   def keras_default(x, training=False):
-    if training:
-      return x + 1
-    return x
+    return x + 1 if training else x
 
   obj.__call__ = keras_default
   obj.plus_one = plus_one
@@ -367,7 +362,7 @@ def _dispatch_model_format(model_format, saved_model_fn, hub_module_fn, *args):
   elif model_format == "TF1HubModule":
     hub_module_fn(*args)
   else:
-    raise ValueError("Unrecognized format: " + format)
+    raise ValueError(f"Unrecognized format: {format}")
 
 
 class KerasTest(tf.test.TestCase, parameterized.TestCase):
@@ -608,8 +603,7 @@ class KerasTest(tf.test.TestCase, parameterized.TestCase):
     export_dir = os.path.join(self.get_temp_dir(), "half-plus-one")
     _save_half_plus_one_model(export_dir, save_from_keras=save_from_keras)
     layer = hub.KerasLayer(export_dir)
-    self.assertEqual([10, 1],
-                     layer.compute_output_shape(tuple([10, 1])).as_list())
+    self.assertEqual([10, 1], layer.compute_output_shape((10, 1)).as_list())
     layer.get_config()
 
   @parameterized.named_parameters(("SavedRaw", False), ("SavedFromKeras", True))
@@ -997,7 +991,7 @@ class KerasLayerTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(("TF1HubModule"), ("TF2SavedModel_SavedRaw"))
   def test_load_with_defaults(self, model_format):
-    export_dir = os.path.join(self.get_temp_dir(), "plus_one_" + model_format)
+    export_dir = os.path.join(self.get_temp_dir(), f"plus_one_{model_format}")
     _dispatch_model_format(model_format, _save_plus_one_saved_model_v2,
                            _save_plus_one_hub_module_v1, export_dir)
     inputs, expected_outputs = 10., 11.  # Test modules perform increment op.
@@ -1015,7 +1009,7 @@ class KerasLayerTest(tf.test.TestCase, parameterized.TestCase):
   def test_load_legacy_hub_module_v1_with_signature(self, model_format,
                                                     signature, output_key,
                                                     as_dict):
-    export_dir = os.path.join(self.get_temp_dir(), "plus_one_" + model_format)
+    export_dir = os.path.join(self.get_temp_dir(), f"plus_one_{model_format}")
     _dispatch_model_format(model_format, _save_plus_one_saved_model_v2,
                            _save_plus_one_hub_module_v1, export_dir)
     inputs, expected_outputs = 10., 11.  # Test modules perform increment op.
@@ -1038,7 +1032,7 @@ class KerasLayerTest(tf.test.TestCase, parameterized.TestCase):
   def test_load_callable_saved_model_v2_with_signature(self, model_format,
                                                        signature, output_key,
                                                        as_dict):
-    export_dir = os.path.join(self.get_temp_dir(), "plus_one_" + model_format)
+    export_dir = os.path.join(self.get_temp_dir(), f"plus_one_{model_format}")
     _dispatch_model_format(model_format, _save_plus_one_saved_model_v2,
                            _save_plus_one_hub_module_v1, export_dir)
     inputs, expected_outputs = 10., 11.  # Test modules perform increment op.
@@ -1077,7 +1071,7 @@ class KerasLayerTest(tf.test.TestCase, parameterized.TestCase):
   )
   def test_keras_layer_get_config(self, model_format, signature, output_key,
                                   as_dict):
-    export_dir = os.path.join(self.get_temp_dir(), "plus_one_" + model_format)
+    export_dir = os.path.join(self.get_temp_dir(), f"plus_one_{model_format}")
     _dispatch_model_format(model_format, _save_plus_one_saved_model_v2,
                            _save_plus_one_hub_module_v1, export_dir)
     inputs = 10.  # Test modules perform increment op.
